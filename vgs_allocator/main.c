@@ -14,8 +14,10 @@ int main()
 	vgs_free(str3);
 	char *str4 = vgs_malloc(sizeof(char) * 64);
 	char *str5 = vgs_calloc(sizeof(char) * 100);
+	strcpy(str, "hello\n");
 	str = vgs_realloc(str, 72);
+	vgs_free(str4);
 	vgs_free(str5);
-	strcpy(str4, "hello\n");
-	puts(str4);
+	puts(str);
+	vgs_free(str);
 }

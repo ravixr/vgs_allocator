@@ -1,5 +1,5 @@
-﻿// vgs_allocator.h - v0.1
-// ----------------------------------------------------------------------------
+﻿// vgs_allocator.h - v1.0
+// -------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2022 Vinicius G. Santos
@@ -22,7 +22,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-// ----------------------------------------------------------------------------
+// -------------------------------------------------------------------------------
 
 #ifndef INCLUDE_VGS_ALLOCATOR_H
 #define INCLUDE_VGS_ALLOCATOR_H

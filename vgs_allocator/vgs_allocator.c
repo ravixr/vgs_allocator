@@ -1,5 +1,5 @@
-﻿// vgs_allocator.c - v0.1
-// ----------------------------------------------------------------------------
+﻿// vgs_allocator.c - v1.0
+// -------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2022 Vinicius G. Santos
@@ -22,14 +22,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-// ----------------------------------------------------------------------------
+// -------------------------------------------------------------------------------
 
 #ifndef VGS_ALLOCATOR_IMPLEMENTATION
 #define VGS_ALLOCATOR_IMPLEMENTATION
 
 #include "vgs_allocator.h"
-#include <assert.h>
-#include <string.h> // memcpy
+#include <assert.h> // _assert
+#include <string.h> // memcpy, memset
 
 // quick bool type implementation
 typedef char bool;
@@ -63,6 +63,8 @@ static void *alloc_block(size_t);
 VGS_ALC_DEF void *vgs_malloc(size_t size)
 {
 	void *address = NULL;
+	if (size == 0)
+		return NULL;
 	if (alc_head_ == NULL) {
 		alc_head_ = (struct vgs_block_info *)heap_ptr_;
 		set_block_info(alc_head_, size, size, NULL, NULL);
@@ -163,10 +165,27 @@ VGS_ALC_DEF void vgs_free(void *block)
 /// @return A pointer to the block with the first 'new_size' bytes in the old block or NULL.
 VGS_ALC_DEF void *vgs_realloc(void *block, size_t new_size)
 {
-	block = block;
-	new_size = new_size;
-	_assert("vgs_realloc(): Not implemented yet", __FILE__, __LINE__ - 4);
-	return NULL;
+	void *address = NULL;
+	if ((byte *)block >= heap_ + BLOCK_INFO_SIZE && (byte *)block < (byte *)heap_ptr_) {
+		struct vgs_block_info *bi = (struct vgs_block_info *)((byte *)block - BLOCK_INFO_SIZE);
+		if (bi->u_size == 0)
+			_assert("vgs_realloc(): Free block detected", __FILE__, __LINE__ - 1);
+		size_t old_size = bi->size;
+		byte data[old_size];
+		memcpy(data, block, old_size);
+		vgs_free(block);
+		address = vgs_malloc(new_size);
+		if (address != NULL) {
+			memcpy(address, data, old_size < new_size ? old_size : new_size);
+			block = NULL;
+		} else {
+			block = vgs_malloc(old_size);
+			if (block == NULL)
+				_assert("vgs_realloc(): Heap corrupted", __FILE__, __LINE__ - 1);
+			memcpy(block, data, old_size);
+		}
+	}
+	return address;
 }
 
 /// @brief Reserves a block of memory with the specified size in bytes if available. The memory is set to zero.
@@ -174,9 +193,10 @@ VGS_ALC_DEF void *vgs_realloc(void *block, size_t new_size)
 /// @return A pointer to a block of memory with the specified size available or NULL.
 VGS_ALC_DEF void *vgs_calloc(size_t size)
 {
-	size = size;
-	_assert("vgs_calloc(): Not implemented yet", __FILE__, __LINE__ - 3);
-	return NULL;
+	void *address = vgs_malloc(size);
+	if (address != NULL)
+		memset(address, 0, size);
+	return address;
 }
 
 static inline void set_block_info(struct vgs_block_info *bi, size_t size, size_t u_size,
@@ -193,9 +213,8 @@ static inline void set_block_info(struct vgs_block_info *bi, size_t size, size_t
 static void *alloc_block(size_t size)
 {
 	struct vgs_block_info *tmp = NULL;
-	if (((byte *)heap_ptr_ + BLOCK_INFO_SIZE + size) > heap_ + HEAP_SIZE) {
-		_assert("vgs_malloc(): Heap out of space", __FILE__, __LINE__ - 1);
-	}
+	if (((byte *)heap_ptr_ + BLOCK_INFO_SIZE + size) > heap_ + HEAP_SIZE)
+		return NULL;
 	tmp = heap_ptr_;
 	set_block_info(tmp, size, size, NULL, alc_head_);
 	alc_head_->prev = tmp;
