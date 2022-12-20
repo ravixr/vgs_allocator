@@ -65,14 +65,6 @@ VGS_ALC_DEF void *vgs_malloc(size_t size)
 	void *address = NULL;
 	if (size == 0)
 		return NULL;
-#if defined(VGS_DEBUG)
-	if (alc_head_ == NULL) {
-		alc_head_ = (struct vgs_block_info *)heap_ptr_;
-		set_block_info(alc_head_, size, size, NULL, NULL);
-		address = alc_head_ + 1;
-		heap_ptr_ = (byte *)heap_ptr_ + BLOCK_INFO_SIZE + size;
-	}
-#endif
 	struct vgs_block_info *i = free_head_;
 	for (; i != NULL && i->size < size; i = i->next) {}
 	if (i == NULL) {
