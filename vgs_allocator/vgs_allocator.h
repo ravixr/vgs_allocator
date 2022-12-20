@@ -1,4 +1,4 @@
-﻿// vgs_allocator.h - v1.0
+﻿// vgs_allocator.h - v1.0.1
 // -------------------------------------------------------------------------------
 // MIT License
 //
@@ -27,7 +27,11 @@
 #ifndef INCLUDE_VGS_ALLOCATOR_H
 #define INCLUDE_VGS_ALLOCATOR_H
 
-#include <stddef.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stddef.h> // size_t
 
 #define HEAP_SIZE 64000
 #define MIN_BLOCK_SIZE 32
@@ -42,5 +46,9 @@ VGS_ALC_DEF void *vgs_malloc(size_t);
 VGS_ALC_DEF void vgs_free(void *);
 VGS_ALC_DEF void *vgs_realloc(void *, size_t);
 VGS_ALC_DEF void *vgs_calloc(size_t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // INCLUDE_VGS_ALLOCATOR_H
