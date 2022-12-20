@@ -1,4 +1,4 @@
-﻿// vgs_allocator.c - v1.0
+﻿// vgs_allocator.c - v1.0.1
 // -------------------------------------------------------------------------------
 // MIT License
 //
@@ -65,42 +65,35 @@ VGS_ALC_DEF void *vgs_malloc(size_t size)
 	void *address = NULL;
 	if (size == 0)
 		return NULL;
-	if (alc_head_ == NULL) {
-		alc_head_ = (struct vgs_block_info *)heap_ptr_;
-		set_block_info(alc_head_, size, size, NULL, NULL);
-		address = alc_head_ + 1;
-		heap_ptr_ = (byte *)heap_ptr_ + BLOCK_INFO_SIZE + size;
+	struct vgs_block_info *i = free_head_;
+	for (; i != NULL && i->size < size; i = i->next) {}
+	if (i == NULL) {
+		address = alloc_block(size);
 	} else {
-		struct vgs_block_info *i = free_head_;
-		for (; i != NULL && i->size < size; i = i->next) {}
-		if (i == NULL) {
-			address = alloc_block(size);
-		} else {
-			if (free_head_ == i) {
-				free_head_ = i->next;
-			}
-			if (i->size >= size + BLOCK_INFO_SIZE + MIN_BLOCK_SIZE) {
-				struct vgs_block_info *tmp = (struct vgs_block_info *)((byte *)(i + 1) + size);
-				set_block_info(tmp, i->size - (size + BLOCK_INFO_SIZE * 2), 0, i->prev, i->next);
-				if (i->prev)
-					i->prev->next = tmp;
-				if (i->next)
-					i->next->prev = tmp;
-				i->size = size;
-			} else {
-				if (i->prev)
-					i->prev->next = i->next;
-				if (i->next)
-					i->next->prev = i->prev;
-			}
-			i->u_size = size;
-			i->prev = NULL;
-			i->next = alc_head_;
-			if (alc_head_)
-				alc_head_->prev = i;
-			alc_head_ = i;
-			address = i + 1;
+		if (free_head_ == i) {
+			free_head_ = i->next;
 		}
+		if (i->size >= size + BLOCK_INFO_SIZE + MIN_BLOCK_SIZE) {
+			struct vgs_block_info *tmp = (struct vgs_block_info *)((byte *)(i + 1) + size);
+			set_block_info(tmp, i->size - (size + BLOCK_INFO_SIZE * 2), 0, i->prev, i->next);
+			if (i->prev)
+				i->prev->next = tmp;
+			if (i->next)
+				i->next->prev = tmp;
+			i->size = size;
+		} else {
+			if (i->prev)
+				i->prev->next = i->next;
+			if (i->next)
+				i->next->prev = i->prev;
+		}
+		i->u_size = size;
+		i->prev = NULL;
+		i->next = alc_head_;
+		if (alc_head_)
+			alc_head_->prev = i;
+		alc_head_ = i;
+		address = i + 1;
 	}
 	if (address != NULL)
 		alc_count_++;
@@ -130,7 +123,6 @@ VGS_ALC_DEF void vgs_free(void *block)
 			i->next->prev = i->prev;
 		if (aux != NULL && (struct vgs_block_info *)((byte *)(aux + 1) + aux->size) == i) {
 			aux->size = aux->size + i->size + BLOCK_INFO_SIZE;
-			aux->u_size = 0;
 			i = aux;
 			if (i->prev)
 				i->prev->next = i->next;
@@ -140,13 +132,13 @@ VGS_ALC_DEF void vgs_free(void *block)
 		aux = (struct vgs_block_info *)((byte *)(i + 1) + i->size);
 		if (aux->u_size == 0) {
 			i->size = aux->size + i->size + BLOCK_INFO_SIZE;
-			i->u_size = 0;
 			if (aux->prev)
 				aux->prev->next = aux->next;
 			if (aux->next)
 				aux->next->prev = aux->prev;
 		}
 		i->prev = NULL;
+		i->u_size = 0;
 		if (free_head_ != i) {
 			i->next = free_head_;
 			if (free_head_)
@@ -217,7 +209,8 @@ static void *alloc_block(size_t size)
 		return NULL;
 	tmp = heap_ptr_;
 	set_block_info(tmp, size, size, NULL, alc_head_);
-	alc_head_->prev = tmp;
+	if (alc_head_)
+		alc_head_->prev = tmp;
 	alc_head_ = tmp;
 	heap_ptr_ = ((byte *)(tmp + 1) + size);
 	return tmp + 1;
